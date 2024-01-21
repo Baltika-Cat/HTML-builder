@@ -8,6 +8,12 @@ fs.mkdir(newFolder, {recursive: true}, (err) => {
     console.log('Directory has been already created');
   }
 })
+const assetsFolder = path.join(newFolder, 'assets');
+fs.mkdir(assetsFolder, {recursive: true}, (err) => {
+  if (err) {
+    console.log('Directory has been already created');
+  }
+})
 
 const htmlFile = path.join(newFolder, 'index.html');
 const cssFile = path.join(newFolder, 'style.css');
@@ -20,35 +26,14 @@ fs.open(htmlFile, 'a', (err) => {
   }
 })
 
-const regExp = /{{\w+}}/g;
-let tag = '';
-const htmlReadable = fs.createReadStream(path.join(__dirname, 'template.html'));
-let text = '';
-/* (async () => {  
-  for await (const line of htmlReadable) {
-    if (line.toString().match(regExp)) {
-      text += line.toString();
-      let regArray = line.toString().match(regExp);
-      regArray.forEach ((item) => {
-        tag = item.replace('{{', '');
-        tag = tag.replace('}}', '');
-        let compText = '';
-        let componentsReadable = fs.createReadStream(path.join(__dirname, `components/${tag}.html`));
-        (async () => {
-          for await (const compLine of componentsReadable) {
-            compText += compLine.toString();
-          }
-          text = text.replace(item, compText);
-          fs.appendFile(htmlFile, text, (err) => {
-            if (err) {
-              console.log(err);
-            }
-          })
-        })();
-      })
-    }
+fs.open(cssFile, 'a', (err) => {
+  if (err) {
+    console.log(err);
   }
-})(); */
+})
+
+const regExp = /{{\w+}}/g;
+let text = '';
 
 fs.readFile(path.join(__dirname, 'template.html'), (err, data) => {
   if (err) {
@@ -69,8 +54,8 @@ fs.readdir(componentsFolder, {withFileTypes: true}, (err, files) => {
           console.log(err);
         }
         let tag = (file.name).slice(0, (file.name).lastIndexOf('.'));
-        console.log(tag)
         text = text.replace(`{{${tag}}}`, data.toString());
+        text = text.replace('\n\n', '\n');
         (async () => {
           await promise.writeFile(htmlFile, text, (err) => {
             if (err) {
@@ -78,7 +63,69 @@ fs.readdir(componentsFolder, {withFileTypes: true}, (err, files) => {
             }
           })
         })()
-        console.log(text)
+      })
+    }
+  })
+})
+
+let styleText = '';
+
+fs.readdir(path.join(stylesFolder), {withFileTypes: true}, (err, styleFiles) => {
+  if (err) {
+    console.log(err);
+  }
+  styleFiles.forEach ((styleFile) => {
+    let fileName = path.join(stylesFolder, styleFile.name);
+    if (styleFile.isFile() && path.extname(fileName) === '.css') {
+      fs.readFile(fileName, (err, data) => {
+        if (err) {
+          console.log(err);
+        }
+        styleText += data.toString();
+        (async () => {
+          await promise.writeFile(cssFile, styleText, (err) => {
+            if (err) {
+              console.log(err);
+            }
+          })
+        })();
+      })
+    }
+  })
+})
+
+fs.readdir(path.join(__dirname, 'assets'), {withFileTypes: true}, (err, files) => {
+  if (err) {
+    console.log(err);
+  }
+  files.forEach ((file) => {
+    let oldFile = path.join(__dirname, 'assets', file.name);
+    let newFile = path.join(assetsFolder, file.name);
+    if (file.isFile()) {
+      fs.copyFile(oldFile, newFile, (err) => {
+        if (err) {
+          console.log(/*'File already exists in the destination directory'*/err);
+        }
+      })
+    } else if (file.isDirectory()) {
+      fs.mkdir(path.join(newFile), {recursive: true}, (err) => {
+        if (err) {
+          console.log('Directory has been already created');
+        }
+      })
+      fs.readdir(oldFile, {withFileTypes: true}, (err, filesDeep) => {
+        if (err) {
+          console.log(err);
+        }
+        if (filesDeep) {
+          filesDeep.forEach ((fileDeep) => {
+            fs.copyFile(path.join(oldFile, fileDeep.name), path.join(newFile, fileDeep.name), (err) => {
+              if (err) {
+                console.log(/*'File already exists in the destination directory'*/err);
+              }
+            })
+          })
+        }
       })
     }
   })
