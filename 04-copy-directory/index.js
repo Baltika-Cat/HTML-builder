@@ -10,6 +10,21 @@ fs.mkdir(newFolder, {recursive: true}, (err) => {
   }
 })
 
+if (newFolder) {
+  fs.readdir(newFolder, (err, files) => {
+    if (err) {
+      console.log(err);
+    }
+    files.forEach ((file) => {
+      fs.unlink(path.join(newFolder, file), (err) => {
+        if (err) {
+          console.log(err);
+        }
+      })
+    })
+  })
+}
+
 fs.readdir(oldFolder, {withFileTypes: true}, (err, files) => {
   if (err) {
     console.log (err);
